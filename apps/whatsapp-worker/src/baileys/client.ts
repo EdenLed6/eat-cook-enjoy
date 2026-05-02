@@ -8,7 +8,7 @@ import qrcode from 'qrcode';
 import { Boom } from '@hapi/boom';
 import { logger } from '../lib/logger.js';
 import { useDBAuthState } from './auth-store.js';
-import { putR2 } from '@eat/agent-core';
+import { putObject } from '@eat/agent-core';
 
 let _sock: WASocket | null = null;
 let _connected = false;
@@ -57,9 +57,9 @@ export async function startBaileys({ userId, onMessage }: StartWorkerArgs): Prom
       const png = await qrcode.toBuffer(qr, { type: 'png', width: 512, margin: 2 });
       _lastQrPng = png;
       try {
-        await putR2('admin/qr.png', png, 'image/png');
+        await putObject('admin/qr.png', png, 'image/png');
       } catch (err) {
-        logger.warn({ err }, 'failed to upload QR to R2 (continuing — QR still served from /admin/wa)');
+        logger.warn({ err }, 'failed to upload QR to storage (continuing — QR still served from /admin/wa)');
       }
     }
     if (connection === 'open') {

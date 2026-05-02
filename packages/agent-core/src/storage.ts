@@ -1,47 +1,35 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { Readable } from 'node:stream';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-let _r2: S3Client | null = null;
+let _client: SupabaseClient | null = null;
 
-export function getR2(): S3Client {
-  if (_r2) return _r2;
-  const endpoint = `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
-  _r2 = new S3Client({
-    region: 'auto',
-    endpoint,
-    credentials: {
-      accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-    },
-  });
-  return _r2;
+function getClient(): SupabaseClient {
+  if (_client) return _client;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    throw new Error('SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set');
+  }
+  _client = createClient(url, key, { auth: { persistSession: false } });
+  return _client;
 }
 
-const bucket = () => process.env.R2_BUCKET ?? 'eat-cook-enjoy';
+const bucket = () => process.env.SUPABASE_STORAGE_BUCKET ?? 'eat-cook-enjoy';
 
-export async function putR2(key: string, body: Buffer, contentType: string): Promise<string> {
-  const r2 = getR2();
-  await r2.send(
-    new PutObjectCommand({
-      Bucket: bucket(),
-      Key: key,
-      Body: body,
-      ContentType: contentType,
-    }),
-  );
+export async function putObject(key: string, body: Buffer, contentType: string): Promise<string> {
+  const { error } = await getClient()
+    .storage.from(bucket())
+    .upload(key, body, { contentType, upsert: true });
+  if (error) throw error;
   return key;
 }
 
-export async function fetchR2ToBase64(
+export async function fetchObjectToBase64(
   key: string,
 ): Promise<{ base64: string; mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' }> {
-  const r2 = getR2();
-  const res = await r2.send(new GetObjectCommand({ Bucket: bucket(), Key: key }));
-  const stream = res.Body as Readable;
-  const chunks: Buffer[] = [];
-  for await (const chunk of stream) chunks.push(chunk as Buffer);
-  const buf = Buffer.concat(chunks);
-  const ct = res.ContentType ?? 'image/jpeg';
+  const { data, error } = await getClient().storage.from(bucket()).download(key);
+  if (error || !data) throw error ?? new Error('object not found');
+  const buf = Buffer.from(await data.arrayBuffer());
+  const ct = data.type || 'image/jpeg';
   let mediaType: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' = 'image/jpeg';
   if (ct.includes('png')) mediaType = 'image/png';
   else if (ct.includes('webp')) mediaType = 'image/webp';
@@ -49,8 +37,7 @@ export async function fetchR2ToBase64(
   return { base64: buf.toString('base64'), mediaType };
 }
 
-export function publicR2Url(key: string): string {
-  const base = process.env.R2_PUBLIC_URL ?? '';
-  if (!base) return key;
-  return `${base.replace(/\/$/, '')}/${key}`;
+export function publicObjectUrl(key: string): string {
+  const { data } = getClient().storage.from(bucket()).getPublicUrl(key);
+  return data.publicUrl;
 }

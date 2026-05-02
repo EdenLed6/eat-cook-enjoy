@@ -14,10 +14,8 @@
 
 ## עלות חודשית משוערת
 - Fly.io VM (shared 1vCPU 512MB): ~$3.20
-- Neon Postgres (free tier): $0
-- Cloudflare R2 (10GB free): $0
+- Supabase (free tier — Postgres + Storage + Auth): $0
 - Tavily (1000 חיפושים חינם): $0
-- Resend (3000 מיילים חינם): $0
 - Anthropic API (~50 הודעות/יום): ~$2-4
 
 **סה"כ: ~$5-7/חודש (~₪20-28).**
@@ -26,39 +24,59 @@
 - Node 20+
 - pnpm 9 (`corepack enable && corepack prepare pnpm@9.12.0 --activate`)
 - חשבון Fly.io
-- חשבון Neon (Postgres)
-- חשבון Cloudflare (R2 bucket)
+- חשבון Supabase (Postgres + Storage + Auth — הכל בחבילה אחת)
 - מפתח Anthropic
-- מפתח Tavily
-- מפתח Resend (אופציונלי, רק אם רוצים מייל magic link)
+- מפתח Tavily (אופציונלי)
 
 ## התקנה מקומית
 
 ```bash
 pnpm install
-cp .env.example .env  # מלאי את כל הערכים
-pnpm db:push           # יוצר את הסכמה ב-Neon
+cp .env.example .env  # מלאי את כל הערכים מ-Supabase Dashboard → Project Settings → API
 pnpm dev:worker        # מריץ את הוואצאפ-worker
 # בטרמינל אחר:
 pnpm dev:web           # מריץ את הדאשבורד ב-http://localhost:3000
 ```
 
+הסכמה כבר קיימת ב-Supabase (נוצרה דרך MCP migrations). אם צריך לשנות אותה — `pnpm db:generate` ואז `pnpm db:push`.
+
 בפעם הראשונה ה-worker ידפיס QR ל-`/admin/wa` ול-stdout. סרקי ב-WhatsApp → Linked Devices.
 
 ## Deploy ל-Fly
 
+### פעם ראשונה (ידנית)
+
 ```bash
+fly auth login
 fly launch --no-deploy           # ייצור fly app מהקונפיג
-fly secrets set DATABASE_URL=... ANTHROPIC_API_KEY=... OWNER_PHONE_E164=... \
-                R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... \
-                R2_BUCKET=eat-cook-enjoy R2_PUBLIC_URL=... \
-                TAVILY_API_KEY=... RESEND_API_KEY=... RESEND_FROM_EMAIL=... \
-                APP_URL=https://eat-cook-enjoy.fly.dev DASHBOARD_OWNER_EMAIL=... \
-                STEPS_HMAC_SECRET=...
+fly secrets set \
+  DATABASE_URL="postgresql://postgres.{ref}:{password}@aws-0-eu-west-3.pooler.supabase.com:6543/postgres" \
+  SUPABASE_URL="https://lgrfaijexfotubdylxky.supabase.co" \
+  SUPABASE_ANON_KEY="eyJ..." \
+  SUPABASE_SERVICE_ROLE_KEY="eyJ..." \
+  SUPABASE_STORAGE_BUCKET="eat-cook-enjoy" \
+  ANTHROPIC_API_KEY="sk-ant-..." \
+  ANTHROPIC_MODEL_DEFAULT="claude-sonnet-4-6" \
+  ANTHROPIC_MODEL_HEAVY="claude-opus-4-7" \
+  OWNER_PHONE_E164="972501234567" \
+  TAVILY_API_KEY="tvly-..." \
+  APP_URL="https://eat-cook-enjoy.fly.dev" \
+  DASHBOARD_OWNER_EMAIL="eden@example.com" \
+  STEPS_HMAC_SECRET="$(openssl rand -hex 32)"
 fly deploy
 ```
 
-לאחר deploy, גשי ל-`/admin/wa` (אחרי login עם magic link) → סרקי QR.
+### Auto-deploy מ-GitHub
+מוגדר ב-`.github/workflows/fly-deploy.yml`. צרי טוקן ב-Fly:
+```bash
+fly tokens create org personal
+```
+והוסיפי אותו כ-secret בשם `FLY_API_TOKEN` ב-GitHub Settings → Secrets.
+
+### אחרי deploy
+1. ב-Supabase Dashboard → Authentication → URL Configuration → הוסיפי `https://eat-cook-enjoy.fly.dev/auth/callback` ל-Redirect URLs.
+2. גשי ל-`https://eat-cook-enjoy.fly.dev/login` → קבלי קישור התחברות במייל (Supabase שולח אותו אוטומטית).
+3. אחרי login: `/admin/wa` → סרקי QR ב-WhatsApp → Linked Devices.
 
 ## פאזות
 
@@ -78,14 +96,14 @@ pnpm typecheck     # tsc על כל ה-workspaces
 
 ```
 WhatsApp ↔ Baileys worker ─┐
-                            ├─→ Postgres (Neon)
+                            ├─→ Supabase Postgres
 Dashboard (Next.js) ───────┘
          ↑                       ↑
-         └──── Magic link auth ──┘
-                            
+         └──── Supabase Auth ────┘  (magic link OTP)
+
 Worker → Anthropic API (Claude Sonnet 4.6 / Vision)
 Worker → Tavily (web search)
-Worker → R2 (תמונות + GIFים)
+Worker → Supabase Storage (תמונות + GIFים)
 Companion App → /api/steps (HMAC)
 ```
 

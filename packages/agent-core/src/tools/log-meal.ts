@@ -36,7 +36,7 @@ export const logMealTool: ToolDefinition = {
         type: 'string',
         description: 'ISO 8601, אופציונלי. ברירת מחדל: עכשיו.',
       },
-      photo_r2_key: { type: 'string', description: 'מפתח התמונה ב-R2 אם זה מתוך log_meal_from_photo' },
+      photo_storage_key: { type: 'string', description: 'מפתח התמונה באחסון אם זה מתוך log_meal_from_photo' },
       vision_confidence: { type: 'number' },
     },
     required: ['description', 'items', 'total_kcal', 'source'],
@@ -56,7 +56,7 @@ export const logMealTool: ToolDefinition = {
         proteinG: input.total_protein_g != null ? String(input.total_protein_g) : null,
         carbsG: input.total_carbs_g != null ? String(input.total_carbs_g) : null,
         fatG: input.total_fat_g != null ? String(input.total_fat_g) : null,
-        photoR2Key: input.photo_r2_key ?? ctx.pendingPhotoR2Key ?? null,
+        photoStorageKey: input.photo_storage_key ?? ctx.pendingPhotoStorageKey ?? null,
         visionConfidence:
           input.vision_confidence != null ? String(input.vision_confidence) : null,
       })
@@ -76,12 +76,12 @@ export const logMealFromPhotoTool: ToolDefinition = {
     },
   },
   async execute(input: any, ctx) {
-    if (!ctx.pendingPhotoR2Key) {
+    if (!ctx.pendingPhotoStorageKey) {
       return { error: 'אין תמונה ממתינה לניתוח. תבקשי מהמשתמשת לשלוח שוב את התמונה.' };
     }
-    const { fetchR2ToBase64 } = await import('../storage.js');
+    const { fetchObjectToBase64 } = await import('../storage.js');
     const { analyzeFood } = await import('@eat/vision');
-    const { base64, mediaType } = await fetchR2ToBase64(ctx.pendingPhotoR2Key);
+    const { base64, mediaType } = await fetchObjectToBase64(ctx.pendingPhotoStorageKey);
     const analysis = await analyzeFood({
       imageBase64: base64,
       mediaType,
@@ -89,7 +89,7 @@ export const logMealFromPhotoTool: ToolDefinition = {
     });
     return {
       ok: true,
-      photo_r2_key: ctx.pendingPhotoR2Key,
+      photo_storage_key: ctx.pendingPhotoStorageKey,
       analysis,
     };
   },

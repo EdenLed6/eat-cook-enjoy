@@ -69,7 +69,7 @@ export const meals = pgTable(
     proteinG: numeric('protein_g', { precision: 6, scale: 1 }),
     carbsG: numeric('carbs_g', { precision: 6, scale: 1 }),
     fatG: numeric('fat_g', { precision: 6, scale: 1 }),
-    photoR2Key: text('photo_r2_key'),
+    photoStorageKey: text('photo_storage_key'),
     visionConfidence: numeric('vision_confidence', { precision: 3, scale: 2 }),
     userCorrected: boolean('user_corrected').default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
@@ -148,7 +148,7 @@ export const messages = pgTable(
     waMessageId: text('wa_message_id'),
     contentType: text('content_type').notNull(),
     text: text('text'),
-    mediaR2Key: text('media_r2_key'),
+    mediaStorageKey: text('media_storage_key'),
     createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => ({
@@ -202,21 +202,6 @@ export const onboardingState = pgTable('onboarding_state', {
   answers: jsonb('answers').default(sql`'{}'::jsonb`).notNull(),
   startedAt: timestamp('started_at', { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp('completed_at', { withTimezone: true }),
-});
-
-export const authSessions = pgTable('auth_sessions', {
-  id: text('id').primaryKey(),
-  userId: uuid('user_id')
-    .references(() => users.id, { onDelete: 'cascade' })
-    .notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-});
-
-export const authMagicLinks = pgTable('auth_magic_links', {
-  token: text('token').primaryKey(),
-  email: text('email').notNull(),
-  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-  usedAt: timestamp('used_at', { withTimezone: true }),
 });
 
 export type User = typeof users.$inferSelect;

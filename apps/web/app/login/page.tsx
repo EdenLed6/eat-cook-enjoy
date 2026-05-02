@@ -1,6 +1,5 @@
-import { Resend } from 'resend';
 import { redirect } from 'next/navigation';
-import { createMagicLink } from '@/lib/auth';
+import { getSupabase } from '@/lib/supabase';
 
 async function sendMagicLink(formData: FormData) {
   'use server';
@@ -9,20 +8,14 @@ async function sendMagicLink(formData: FormData) {
   if (!email || email !== allowed) {
     redirect('/login?error=unauthorized');
   }
-  const token = await createMagicLink(email);
-  const link = `${process.env.APP_URL ?? ''}/login/verify?token=${token}`;
-
-  const apiKey = process.env.RESEND_API_KEY;
-  if (apiKey) {
-    const resend = new Resend(apiKey);
-    await resend.emails.send({
-      from: process.env.RESEND_FROM_EMAIL ?? 'login@example.com',
-      to: email,
-      subject: 'קישור התחברות לדאשבורד',
-      html: `<p>היי 👋</p><p>זה הקישור להתחברות:</p><p><a href="${link}">${link}</a></p><p>בתוקף ל-15 דקות.</p>`,
-    });
-  } else {
-    console.log('LOGIN LINK (no Resend configured):', link);
+  const supabase = await getSupabase();
+  const redirectTo = `${process.env.APP_URL ?? ''}/auth/callback`;
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: redirectTo, shouldCreateUser: true },
+  });
+  if (error) {
+    redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
   redirect('/login?sent=1');
 }
@@ -61,5 +54,6 @@ async function SearchParamsHint({
   const sp = await searchParams;
   if (sp.sent) return <p className="text-green-700 text-sm">שלחנו לך קישור — בדקי את המייל</p>;
   if (sp.error === 'unauthorized') return <p className="text-red-600 text-sm">מייל לא מורשה</p>;
+  if (sp.error) return <p className="text-red-600 text-sm">שגיאה: {sp.error}</p>;
   return null;
 }

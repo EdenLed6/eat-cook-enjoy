@@ -20,7 +20,7 @@ export interface RunAgentInput {
   timezone: string;
   incoming:
     | { kind: 'text'; text: string }
-    | { kind: 'image'; r2Key: string; caption?: string };
+    | { kind: 'image'; storageKey: string; caption?: string };
 }
 
 export interface RunAgentOutput {
@@ -75,7 +75,7 @@ export async function runAgent(input: RunAgentInput): Promise<RunAgentOutput> {
   const ctx = {
     userId: input.userId,
     timezone: input.timezone,
-    pendingPhotoR2Key: input.incoming.kind === 'image' ? input.incoming.r2Key : null,
+    pendingPhotoStorageKey: input.incoming.kind === 'image' ? input.incoming.storageKey : null,
   };
 
   const client = getAnthropic();

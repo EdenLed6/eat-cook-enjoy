@@ -2,7 +2,7 @@ import type { WASocket } from '@whiskeysockets/baileys';
 import { logger } from '../lib/logger.js';
 import { getDb, messages } from '@eat/db';
 
-async function persistOutbound(userId: string, jid: string, text: string, contentType = 'text', mediaR2Key?: string) {
+async function persistOutbound(userId: string, jid: string, text: string, contentType = 'text', mediaStorageKey?: string) {
   try {
     const db = getDb();
     await db.insert(messages).values({
@@ -11,7 +11,7 @@ async function persistOutbound(userId: string, jid: string, text: string, conten
       channel: 'whatsapp',
       contentType,
       text,
-      mediaR2Key: mediaR2Key ?? null,
+      mediaStorageKey: mediaStorageKey ?? null,
     });
   } catch (err) {
     logger.warn({ err }, 'failed to persist outbound');

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUserId } from '@/lib/auth';
 import { Nav } from '@/components/Nav';
 import { Card } from '@/components/Card';
-import { publicR2Url } from '@eat/agent-core';
+import { publicObjectUrl } from '@eat/agent-core';
 import { getDb, eq, desc } from '@eat/db';
 import { messages } from '@eat/db';
 
@@ -24,7 +24,7 @@ export default async function WaAdminPage() {
   if (!userId) redirect('/login');
 
   const health = await fetchWorkerHealth();
-  const qrUrl = publicR2Url('admin/qr.png');
+  const qrUrl = publicObjectUrl('admin/qr.png');
   const db = getDb();
   const recent = await db
     .select()
@@ -49,7 +49,7 @@ export default async function WaAdminPage() {
               {qrUrl.startsWith('http') ? (
                 <img src={qrUrl} alt="QR" className="w-72 h-72 rounded-xl border" />
               ) : (
-                <div className="text-sm text-gray-500">QR יופיע ב-R2 כש-Baileys ייצור אחד</div>
+                <div className="text-sm text-gray-500">QR יופיע באחסון כש-Baileys ייצור אחד</div>
               )}
             </div>
           )}

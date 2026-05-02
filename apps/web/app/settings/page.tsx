@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getCurrentUserId, clearSession } from '@/lib/auth';
+import { getCurrentUserId, signOut } from '@/lib/auth';
 import { Nav } from '@/components/Nav';
 import { Card } from '@/components/Card';
 import { getDb, eq } from '@eat/db';
@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 async function logout() {
   'use server';
-  await clearSession();
+  await signOut();
   redirect('/login');
 }
 

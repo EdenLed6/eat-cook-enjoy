@@ -1,7 +1,7 @@
 import type { WASocket, proto } from '@whiskeysockets/baileys';
 import { downloadMediaMessage } from '@whiskeysockets/baileys';
 import { getDb, eq, messages as messagesTable, users } from '@eat/db';
-import { runAgent, putR2 } from '@eat/agent-core';
+import { runAgent, putObject } from '@eat/agent-core';
 import { logger } from '../lib/logger.js';
 import { env, ownerJid } from '../lib/env.js';
 import { sendText } from '../baileys/send.js';
@@ -53,8 +53,8 @@ export async function onMessage(
 
   if (hasImage(m)) {
     const buffer = (await downloadMediaMessage(m, 'buffer', {})) as Buffer;
-    const r2Key = `meals/${userId}/${m.key.id ?? Date.now()}.jpg`;
-    await putR2(r2Key, buffer, 'image/jpeg');
+    const storageKey = `meals/${userId}/${m.key.id ?? Date.now()}.jpg`;
+    await putObject(storageKey, buffer, 'image/jpeg');
     await db.insert(messagesTable).values({
       userId,
       direction: 'in',
@@ -62,7 +62,7 @@ export async function onMessage(
       waMessageId: m.key.id ?? null,
       contentType: 'image',
       text: text ?? null,
-      mediaR2Key: r2Key,
+      mediaStorageKey: storageKey,
     });
 
     if (await isOnboardingActive(userId)) {
@@ -73,7 +73,7 @@ export async function onMessage(
     const result = await runAgent({
       userId,
       timezone: env.TZ,
-      incoming: { kind: 'image', r2Key, caption: text ?? undefined },
+      incoming: { kind: 'image', storageKey, caption: text ?? undefined },
     });
     await sendText(sock, userId, ownerJid(), result.text);
     return;

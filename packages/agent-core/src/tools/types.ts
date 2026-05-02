@@ -1,7 +1,7 @@
 export interface ToolCtx {
   userId: string;
   timezone: string;
-  pendingPhotoR2Key?: string | null;
+  pendingPhotoStorageKey?: string | null;
 }
 
 export interface ToolDefinition<TInput = unknown, TOutput = unknown> {

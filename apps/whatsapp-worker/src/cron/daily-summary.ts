@@ -4,7 +4,7 @@ import { he } from '@eat/shared';
 import type { WASocket } from '@whiskeysockets/baileys';
 import { sendText, sendGifFromUrl } from '../baileys/send.js';
 import { ownerJid, env } from '../lib/env.js';
-import { getTodaySummary, publicR2Url } from '@eat/agent-core';
+import { getTodaySummary, publicObjectUrl } from '@eat/agent-core';
 
 const SUCCESS_GIFS = Array.from({ length: 5 }, (_, i) => `gifs/success_${i + 1}.gif`);
 const MOTIVATE_GIFS = Array.from({ length: 5 }, (_, i) => `gifs/motivate_${i + 1}.gif`);
@@ -41,7 +41,7 @@ export async function sendDailySummary(sock: WASocket | null) {
 
   try {
     const gifKey = success ? pick(SUCCESS_GIFS) : pick(MOTIVATE_GIFS);
-    const url = publicR2Url(gifKey);
+    const url = publicObjectUrl(gifKey);
     if (url && url.startsWith('http')) {
       await sendGifFromUrl(sock, user.id, ownerJid(), url);
     }
