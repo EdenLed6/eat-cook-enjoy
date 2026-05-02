@@ -1,6 +1,6 @@
 # eat-cook-enjoy
 
-עוזרת אישית לתזונה ופעילות גופנית בוואצאפ + דאשבורד אישי. עברית, RTL, חד-משתמשת.
+עוזרת אישית לתזונה ופעילות גופנית בוואצאפ + דאשבורד אישי. עברית, RTL, חד-משתמשת. רץ במחשב המקומי שלך.
 
 ## מה יש כאן
 
@@ -12,78 +12,65 @@
 - **Cron jobs**: צ׳ק-אין בוקר, תזכורות מים, סיכום יומי + GIF.
 - **API steps** עם HMAC לאפליקציית companion עתידית של Health Connect.
 
-## עלות חודשית משוערת
-- Fly.io VM (shared 1vCPU 512MB): ~$3.20
+## עלות חודשית
 - Supabase (free tier — Postgres + Storage + Auth): $0
-- Tavily (1000 חיפושים חינם): $0
 - Anthropic API (~50 הודעות/יום): ~$2-4
+- Tavily (אופציונלי, 1000 חיפושים חינם): $0
 
-**סה"כ: ~$5-7/חודש (~₪20-28).**
+**סה"כ: ~$2-4/חודש (~₪7-15).** הבוט רץ במחשב שלך — אין עלות שרת.
 
 ## דרישות מקדימות
-- Node 20+
-- pnpm 9 (`corepack enable && corepack prepare pnpm@9.12.0 --activate`)
-- חשבון Fly.io
-- חשבון Supabase (Postgres + Storage + Auth — הכל בחבילה אחת)
+
+- Node 20+ ו-pnpm 9 (`corepack enable && corepack prepare pnpm@9.12.0 --activate`)
+- חשבון Supabase (כבר יש לך — project `lgrfaijexfotubdylxky`)
 - מפתח Anthropic
-- מפתח Tavily (אופציונלי)
+- וואצאפ במחשב/בנייד (לסריקת QR)
 
-## התקנה מקומית
+## הפעלה
+
+### פעם ראשונה
+
+1. **קלון ה-repo והתקיני dependencies:**
+   ```bash
+   git clone https://github.com/EdenLed6/eat-cook-enjoy.git
+   cd eat-cook-enjoy
+   pnpm install
+   ```
+
+2. **צרי את `.env`:**
+   ```bash
+   cp .env.example .env
+   ```
+   פתחי ב-editor ומלאי את הערכים. רוב הערכים תקבלי מ-Supabase Dashboard:
+   - `DATABASE_URL` → [Connect](https://supabase.com/dashboard/project/lgrfaijexfotubdylxky/?showConnect=true) → "Transaction pooler" (תצטרכי password מ-Settings → Database)
+   - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` → [API Keys](https://supabase.com/dashboard/project/lgrfaijexfotubdylxky/settings/api-keys)
+   - `ANTHROPIC_API_KEY` → [console.anthropic.com](https://console.anthropic.com/settings/keys)
+   - `OWNER_PHONE_E164` → המספר שלך בפורמט `972XXXXXXXXX` (בלי + בלי רווחים)
+   - `DASHBOARD_OWNER_EMAIL` → המייל שאיתו תתחברי לדאשבורד
+
+3. **הוסיפי `http://localhost:3000/auth/callback` ל-Supabase Redirect URLs:**
+   [Authentication → URL Configuration](https://supabase.com/dashboard/project/lgrfaijexfotubdylxky/auth/url-configuration) → "Redirect URLs" → Add → הדביקי.
+
+4. **הריצי הכל:**
+   ```bash
+   pnpm dev
+   ```
+   זה מריץ במקביל את הדאשבורד (port 3000) ואת ה-worker.
+
+5. **התחברות לוואצאפ (פעם אחת):**
+   - גשי ל-[http://localhost:3000/login](http://localhost:3000/login) → קבלי קישור במייל מ-Supabase.
+   - אחרי login → גשי ל-`/admin/wa` → תוצג תמונת QR.
+   - בנייד: WhatsApp → הגדרות → מכשירים מקושרים → קשר מכשיר → סרקי.
+   - הבוט מחובר. שלחי לעצמך "היי" כדי להתחיל אונבורדינג.
+
+### בכל הפעלה רגילה
 
 ```bash
-pnpm install
-cp .env.example .env  # מלאי את כל הערכים מ-Supabase Dashboard → Project Settings → API
-pnpm dev:worker        # מריץ את הוואצאפ-worker
-# בטרמינל אחר:
-pnpm dev:web           # מריץ את הדאשבורד ב-http://localhost:3000
+cd eat-cook-enjoy
+pnpm dev
 ```
 
-הסכמה כבר קיימת ב-Supabase (נוצרה דרך MCP migrations). אם צריך לשנות אותה — `pnpm db:generate` ואז `pnpm db:push`.
-
-בפעם הראשונה ה-worker ידפיס QR ל-`/admin/wa` ול-stdout. סרקי ב-WhatsApp → Linked Devices.
-
-## Deploy ל-Fly
-
-### פעם ראשונה (ידנית)
-
-```bash
-fly auth login
-fly launch --no-deploy           # ייצור fly app מהקונפיג
-fly secrets set \
-  DATABASE_URL="postgresql://postgres.{ref}:{password}@aws-0-eu-west-3.pooler.supabase.com:6543/postgres" \
-  SUPABASE_URL="https://lgrfaijexfotubdylxky.supabase.co" \
-  SUPABASE_ANON_KEY="eyJ..." \
-  SUPABASE_SERVICE_ROLE_KEY="eyJ..." \
-  SUPABASE_STORAGE_BUCKET="eat-cook-enjoy" \
-  ANTHROPIC_API_KEY="sk-ant-..." \
-  ANTHROPIC_MODEL_DEFAULT="claude-sonnet-4-6" \
-  ANTHROPIC_MODEL_HEAVY="claude-opus-4-7" \
-  OWNER_PHONE_E164="972501234567" \
-  TAVILY_API_KEY="tvly-..." \
-  APP_URL="https://eat-cook-enjoy.fly.dev" \
-  DASHBOARD_OWNER_EMAIL="eden@example.com" \
-  STEPS_HMAC_SECRET="$(openssl rand -hex 32)"
-fly deploy
-```
-
-### Auto-deploy מ-GitHub
-מוגדר ב-`.github/workflows/fly-deploy.yml`. צרי טוקן ב-Fly:
-```bash
-fly tokens create org personal
-```
-והוסיפי אותו כ-secret בשם `FLY_API_TOKEN` ב-GitHub Settings → Secrets.
-
-### אחרי deploy
-1. ב-Supabase Dashboard → Authentication → URL Configuration → הוסיפי `https://eat-cook-enjoy.fly.dev/auth/callback` ל-Redirect URLs.
-2. גשי ל-`https://eat-cook-enjoy.fly.dev/login` → קבלי קישור התחברות במייל (Supabase שולח אותו אוטומטית).
-3. אחרי login: `/admin/wa` → סרקי QR ב-WhatsApp → Linked Devices.
-
-## פאזות
-
-- ✅ פאזה 0–6: Scaffold, Baileys, Onboarding, ארוחות, תזכורות, דאשבורד, זיכרון.
-- ⏳ פאזה 7: Tavily search מקושר (כלים מוגדרים, צריך מפתח).
-- ⏳ פאזה 8: Kotlin companion app להעברת ספירת צעדים מ-Health Connect.
-- ⏳ פאזה 9: Whisper להודעות קוליות, סקירה שבועית עם Opus, pgvector לזיכרון ארוך.
+הסשן של וואצאפ נשמר ב-Supabase, אז אין צורך לסרוק QR שוב. כל זמן שהמחשב דולק והפקודה רצה — הבוט עובד. כשהמחשב נסגר, ההודעות מחכות ב-WhatsApp ויטופלו ברגע שתפעילי שוב.
 
 ## בדיקות
 
@@ -95,25 +82,30 @@ pnpm typecheck     # tsc על כל ה-workspaces
 ## ארכיטקטורה
 
 ```
-WhatsApp ↔ Baileys worker ─┐
-                            ├─→ Supabase Postgres
-Dashboard (Next.js) ───────┘
-         ↑                       ↑
-         └──── Supabase Auth ────┘  (magic link OTP)
+WhatsApp ↔ Baileys worker (במחשב המקומי) ─┐
+                                          ├─→ Supabase Postgres
+Dashboard Next.js (במחשב המקומי) ─────────┘
+         ↑                                      ↑
+         └──── Supabase Auth (magic link) ──────┘
 
 Worker → Anthropic API (Claude Sonnet 4.6 / Vision)
-Worker → Tavily (web search)
-Worker → Supabase Storage (תמונות + GIFים)
-Companion App → /api/steps (HMAC)
+Worker → Tavily (web search, אופציונלי)
+Worker → Supabase Storage (תמונות + QR + GIFים)
 ```
 
-## שאלות?
+## פאזות
 
-הקוד מאורגן כ-monorepo לפי מודולים:
+- ✅ פאזה 0–6: Scaffold, Baileys, Onboarding, ארוחות, תזכורות, דאשבורד, זיכרון.
+- ⏳ פאזה 7: Tavily search מקושר (כלים מוגדרים, צריך מפתח).
+- ⏳ פאזה 8: Kotlin companion app להעברת ספירת צעדים מ-Health Connect.
+- ⏳ פאזה 9: Whisper להודעות קוליות, סקירה שבועית עם Opus, pgvector לזיכרון ארוך.
+
+## ארגון ה-monorepo
+
 - `packages/shared` – טיפוסים ומחרוזות עברית
 - `packages/db` – Drizzle schema + client
 - `packages/nutrition` – חישובים (Mifflin, diet-selector, safety, MET)
 - `packages/vision` – Claude Vision wrapper לאוכל
-- `packages/agent-core` – Agent loop, tools, prompts, memory loader
+- `packages/agent-core` – Agent loop, tools, prompts, memory loader, Supabase Storage
 - `apps/whatsapp-worker` – Baileys + cron jobs
 - `apps/web` – Next.js dashboard
