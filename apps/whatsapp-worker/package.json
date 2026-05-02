@@ -1,0 +1,33 @@
+{
+  "name": "@eat/whatsapp-worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.13",
+    "@hapi/boom": "^10.0.1",
+    "@anthropic-ai/sdk": "^0.32.1",
+    "@eat/agent-core": "workspace:*",
+    "@eat/db": "workspace:*",
+    "@eat/nutrition": "workspace:*",
+    "@eat/shared": "workspace:*",
+    "@eat/vision": "workspace:*",
+    "node-cron": "^3.0.3",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #e8826b;
+}
+
+html {
+  font-family: 'Heebo', system-ui, -apple-system, sans-serif;
+}
+
+body {
+  background: linear-gradient(180deg, #fdf4f0 0%, #ffffff 80%);
+  min-height: 100vh;
+  color: #1f1f1f;
+}
+
+/* RTL fix for recharts axes */
+.recharts-wrapper {
+  direction: ltr;
+}
